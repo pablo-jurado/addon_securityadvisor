@@ -153,11 +153,12 @@ Scanner.prototype.parse_comet_message = function(data) {
     else if (data.type == "mod_advice") {
         var advise_notice_type = data.advice.type == 8 ? "error" : data.advice.type == 4 ? "warn" : data.advice.type == 2 ? "info" : "success";
 
+        var messageId = YAHOO.lang.escapeHTML(data.advice.key);
         new Page_Notice({
                         level: advise_notice_type,
                         type: data.advice.type,
                         container: DOM.get('securityadvice_' + advise_notice_type),
-                        content: data.advice.text + (data.advice.suggestion ? ("<blockquote>" + data.advice.suggestion + "</blockquote>") : "")
+                        content: "<div id=\"" + messageId + "\">" + data.advice.text + (data.advice.suggestion ? ("<blockquote>" + data.advice.suggestion + "</blockquote>") : "") + "</div>"
                 }).show();
     }
     else {
