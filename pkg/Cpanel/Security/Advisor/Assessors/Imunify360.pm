@@ -1,6 +1,6 @@
 package Cpanel::Security::Advisor::Assessors::Imunify360;
 
-# Copyright (c) 2019, cPanel, L.L.C.
+# Copyright 2019, cPanel, L.L.C.
 # All rights reserved.
 # http://cpanel.net
 #
@@ -18,7 +18,7 @@ package Cpanel::Security::Advisor::Assessors::Imunify360;
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 # ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 # WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-# DISCLAIMED. IN NO EVENT SHALL  BE LIABLE FOR ANY
+# DISCLAIMED. IN NO EVENT SHALL cPanel, L.L.C BE LIABLE FOR ANY
 # DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
 # (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
 # LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
@@ -42,9 +42,27 @@ use Cpanel::Imports;
 
 our $IMUNIFY360_MINIMUM_CPWHM_VERSION = '11.79';    # we want it usable on both development and release builds for 11.80
 
+=head2 version()
+
+Return the Assessor Version
+
+=cut
+
 sub version {
     return '1.00';
 }
+
+=head2 generate_advice()
+
+Return the proper advice if Imunify360 is enabled in Manage2 and the version is 80 or later.
+
+There are four different types of advice:
+    - Imunify360 is installed and has a current license.
+    - Imunify360 is installed and needs a new license.
+    - Imunify360 is uninstalled and has a current license.
+    - Imunify360 is uninstalled and needs a new license.
+
+=cut
 
 sub generate_advice {
     my ($self) = @_;
@@ -130,7 +148,7 @@ TEMPLATE
 
 sub _process_template {
     my ( $template_ref, $args )   = @_;
-    my ( $ok,       $output ) = Cpanel::Template::process_template(
+    my ( $ok,           $output ) = Cpanel::Template::process_template(
         'whostmgr',
         {
             'template_file' => $template_ref,
@@ -154,10 +172,10 @@ sub _suggest_imunify360 {
         );
 
         $self->add_warn_advice(
-            key        => 'Imunify360_update_license',
-            text       => locale()->maketext('[asis,Imunify360] is installed but you do not have a current license.'),
-            suggestion => $$output,
-            block_notify => 1,                                                                         # Do not send a notification about this
+            key          => 'Imunify360_update_license',
+            text         => locale()->maketext('[asis,Imunify360] is installed but you do not have a current license.'),
+            suggestion   => $$output,
+            block_notify => 1,                                                                                             # Do not send a notification about this
         );
     }
     elsif (!Whostmgr::Imunify360::is_imunify360_licensed()
@@ -170,16 +188,16 @@ sub _suggest_imunify360 {
             {
                 'path'               => $self->base_path('scripts12/purchase_imunify360_init'),
                 'price'              => $imunify360_price,
-                'include_kernelcare' => !Whostmgr::Imunify360::get_kernelcare_data()->{'disabled'}
-                  && Whostmgr::Imunify360::is_centos_6_or_7(),
+                'include_kernelcare' => Whostmgr::Imunify360::is_centos_6_or_7()
+                  && !Whostmgr::Imunify360::get_kernelcare_data()->{'disabled'},
             },
         );
 
         $self->add_warn_advice(
-            key        => 'Imunify360_purchase',
-            text       => locale()->maketext('Use [asis,Imunify360] for complete protection against attacks on your servers.'),
-            suggestion => $$output,
-            block_notify => 1,  # Do not send a notification about this
+            key          => 'Imunify360_purchase',
+            text         => locale()->maketext('Use [asis,Imunify360] for complete protection against attacks on your servers.'),
+            suggestion   => $$output,
+            block_notify => 1,                                                                                                      # Do not send a notification about this
         );
     }
     elsif ( !Whostmgr::Imunify360::is_imunify360_installed() ) {
@@ -187,8 +205,8 @@ sub _suggest_imunify360 {
             \_get_install_template(),
             {
                 'path'               => $self->base_path('scripts12/install_imunify360'),
-                'include_kernelcare' => !Whostmgr::Imunify360::get_kernelcare_data()->{'disabled'}
-                  && Whostmgr::Imunify360::is_centos_6_or_7(),
+                'include_kernelcare' => Whostmgr::Imunify360::is_centos_6_or_7()
+                  && !Whostmgr::Imunify360::get_kernelcare_data()->{'disabled'},
             }
         );
 
@@ -202,7 +220,7 @@ sub _suggest_imunify360 {
     else {
         my $imunify_whm_link = locale()->maketext(
             '[output,url,_1,Open Imunify360,_2,_3].',
-            $self->base_path('/cgi/imunify/handlers/index.cgi#/admin/dashboard/incidents'),
+            $self->base_path('cgi/imunify/handlers/index.cgi#/admin/dashboard/incidents'),
             'target' => '_parent'
         );
 
