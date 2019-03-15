@@ -54,13 +54,16 @@ sub version {
 
 =head2 generate_advice()
 
-Return the proper advice if Imunify360 is enabled in Manage2 and the version is 80 or later.
+Returns the proper advice if the following conditions are met.
+Checks the OS because Imunify360 is only available in CentOS6, CentOS7, and CloudLinux.
+Checks if Imunify360 is enabled in Manage2.
+Also checks if the cPanel version is 80 or later.
 
 There are four different types of advice:
-    - Imunify360 is installed and has a current license.
-    - Imunify360 is installed and needs a new license.
-    - Imunify360 is uninstalled and has a current license.
-    - Imunify360 is uninstalled and needs a new license.
+    - Imunify360 is installed and has a current license ( key  => 'Imunify360_present' ).
+    - Imunify360 is installed and needs a new license ( key => 'Imunify360_update_license' ).
+    - Imunify360 is uninstalled and has a current license ( key => 'Imunify360_install' ).
+    - Imunify360 is uninstalled and needs a new license. ( key => 'Imunify360_purchase' ).
 
 =cut
 
