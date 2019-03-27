@@ -43,18 +43,18 @@ use Cpanel::Imports;
 
 our $IMUNIFY360_MINIMUM_CPWHM_VERSION = '11.79';    # we want it usable on both development and release builds for 11.80
 
+my $imunify = Whostmgr::Imunify360->new();
+
 sub version {
     return '1.00';
 }
 
 sub generate_advice {
     my ($self) = @_;
-    my $is_imunify360_disabled = Whostmgr::Imunify360::get_imunify360_data()->{'disabled'};
 
     eval {
-        if (   Cpanel::Version::compare( Cpanel::Version::getversionnumber(), '>=', $IMUNIFY360_MINIMUM_CPWHM_VERSION )
-            && _is_imunify360_supported()
-            && !$is_imunify360_disabled ) {
+        if ( Cpanel::Version::compare( Cpanel::Version::getversionnumber(), '>=', $IMUNIFY360_MINIMUM_CPWHM_VERSION )
+            && $imunify->should_offer() ) {
             $self->_suggest_imunify360;
         }
     };
@@ -145,8 +145,10 @@ sub _process_template {
 sub _suggest_imunify360 {
     my ($self) = @_;
 
-    if (  !Whostmgr::Imunify360::is_imunify360_licensed()
-        && Whostmgr::Imunify360::is_imunify360_installed() ) {
+    my $licensed = $imunify->is_product_licensed();
+    my $installed = $imunify->is_product_installed();
+
+    if ( !$licensed && $installed ) {
         my $output = _process_template(
             \_get_purchase_template(),
             {
@@ -161,17 +163,14 @@ sub _suggest_imunify360 {
             block_notify => 1,                                                                                             # Do not send a notification about this
         );
     }
-    elsif (!Whostmgr::Imunify360::is_imunify360_licensed()
-        && !Whostmgr::Imunify360::is_imunify360_installed() ) {
-
-        my $imunify360_price = Whostmgr::Imunify360::get_imunify360_price();
+    elsif ( !$licensed && !$installed ) {
 
         my $output = _process_template(
             \_get_purchase_and_install_template(),
             {
                 'path'               => $self->base_path('scripts12/purchase_imunify360_init'),
-                'price'              => $imunify360_price,
-                'include_kernelcare' => !Whostmgr::Imunify360::get_kernelcare_data()->{'disabled'}
+                'price'              => $imunify->get_product_price(),
+                'include_kernelcare' => !$imunify->get_manage2_data('kernelcare')->{'disabled'}
                   && Whostmgr::Imunify360::is_centos_6_or_7(),
             },
         );
@@ -183,12 +182,12 @@ sub _suggest_imunify360 {
             block_notify => 1,                                                                                                      # Do not send a notification about this
         );
     }
-    elsif ( !Whostmgr::Imunify360::is_imunify360_installed() ) {
+    elsif ( $licensed && !$installed  ) {
         my $output = _process_template(
             \_get_install_template(),
             {
                 'path'               => $self->base_path('scripts12/install_imunify360'),
-                'include_kernelcare' => !Whostmgr::Imunify360::get_kernelcare_data()->{'disabled'}
+                'include_kernelcare' => !$imunify->get_manage2_data('kernelcare')->{'disabled'}
                   && Whostmgr::Imunify360::is_centos_6_or_7(),
             }
         );
@@ -222,13 +221,6 @@ sub _suggest_imunify360 {
     }
 
     return 1;
-}
-
-sub _is_imunify360_supported {
-    my $centos_version = Cpanel::Sys::OS::Check::get_strict_centos_version();
-    my $os             = Cpanel::Sys::GetOS::getos();
-    my $os_ok          = ( ( $os =~ /^centos$/ && ( $centos_version == 6 || $centos_version == 7 ) ) || $os =~ /^cloudlinux$/i );
-    return $os_ok;
 }
 
 1;
