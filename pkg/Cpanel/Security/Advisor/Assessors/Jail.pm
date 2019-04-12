@@ -104,8 +104,8 @@ sub _check_for_unjailed_users {
                 {
                     'key'        => 'Jail_wheel_users_exist',
                     'type'       => $Cpanel::Security::Advisor::ADVISE_INFO,
-                    'text'       => $self->_lh->maketext('Users with wheel group access:'),
-                    'suggestion' => $self->_lh->maketext( '[list_and,_1].', \@wheel_users ) . '<br><br>' . $self->_lh->maketext(
+                    'text'       => $self->_lh->maketext( 'Users with wheel group access: [list_and,_1].', \@wheel_users ),
+                    'suggestion' => $self->_lh->maketext(
                         'Users in the “[asis,wheel]” group may run “[asis,su]”. Consider removing these users from the “[asis,wheel]” group in the “[output,url,_1,Manage Wheel Group Users,_2,_3]” area if they do not need to be in the “[asis,wheel]” group.',
                         $self->base_path('scripts/modwheel'),
                         'target',
@@ -120,8 +120,8 @@ sub _check_for_unjailed_users {
                 {
                     'key'        => 'Jail_users_running_outside_of_jail',
                     'type'       => $Cpanel::Security::Advisor::ADVISE_WARN,
-                    'text'       => $self->_lh->maketext('Users running outside of the jail:'),
-                    'suggestion' => $self->_lh->maketext( '[list_and,_1].', \@users_without_jail ) . '<br><br>' . $self->_lh->maketext(
+                    'text'       => $self->_lh->maketext( 'Users running outside of the jail: [list_and,_1].', \@users_without_jail ),
+                    'suggestion' => $self->_lh->maketext(
                         'Change these users to jailshell or noshell in the “[output,url,_1,Manage Shell Access,_2,_3]” area.',
                         $self->base_path('scripts2/manageshells'),
                         'target',

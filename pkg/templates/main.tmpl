@@ -7,166 +7,59 @@
 
 [% IF Whostmgr.RELEASE_VERSION >= 63;
     SET wrapper_path = 'master_templates/master.tmpl'
-        wrapper_theme = 'bootstrap';
+        wrapper_theme = 'yui';
 END; %]
 
 [% WRAPPER $wrapper_path
-    header = 'cPanel Security Advisor'
-    icon = '/addon_plugins/ico-security-advisor.png'
-    theme = wrapper_theme
-    scripts = [
-        Whostmgr.find_file_url('libraries/handlebars/handlebars.min.js'),
-        Whostmgr.find_file_url('sharedjs/cometd_optimized.js'),
-        Whostmgr.find_file_url('sharedjs/yui/yui.cometd_optimized.js'),
-    ];
--%]
+  header = 'cPanel Security Advisor'
+  icon = '/addon_plugins/ico-security-advisor.png'
+  theme = wrapper_theme
+scripts = [
+Whostmgr.find_file_url('sharedjs/cometd_optimized.js')
+Whostmgr.find_file_url('sharedjs/yui/yui.cometd_optimized.js')
+]; -%]
 
 [% PROCESS '_ajaxapp_styles.tmpl' -%]
 [% PROCESS '_ajaxapp_header.tmpl' -%]
-<style>
-    td * {
-        vertical-align: middle;
-    }
-    h3 {
-        margin-top: 0;
-    }
-    h3 * {
-        vertical-align: middle;
-    }
-    h3 i {
-        margin-bottom: 2px;
-    }
-    .callout {
-        margin-top: 5px;
-        margin-bottom: 5px;
-    }
-</style>
-
-<span>
-    <button
-        type="button"
-        class="btn btn-primary"
-        id="scan_button"
-        onclick="scanner.run_scan()">
-        [% locale.maketext('Scan Again') %]
-    </button>
-    <i id="spinner" style="display:none;" class="fas fa-sync fa-spin text-info" aria-hidden="true"></i>
-
-    <span id="current_item"></span>
-</span>
-<span class="pull-right">
-    [% locale.maketext("[output,strong,Version:] [_1]", security_advisor_version) %]
-</span>
+<table style="width: 0 auto;" width="100%">
+  <tbody>
+    <tr>
+      <td align="left" width="27%">Start Time: <span id="start_time">---</span></td>
+      <td align="center" width="36%"><button type="button" id="scan_button" onclick="scanner.run_scan()">Scan Again</button><img id="spinner" style="display:none; margin-bottom: 3px; margin-right: 4px;" align="absmiddle" src="[%- cp_security_token -%]/images/report-spinner.gif" /><span id="current_item">---</span></td>
+      <td align="center" width="10%">[% locale.maketext("[output,strong,Version:] [_1]", security_advisor_version) %]</td>
+      <td align="right" width="27%">Finish Time: <span id="end_time">---</span></td>
+    </tr>
+  </tbody>
+</table>
 
 
 <div id="securityadvice">
-  <h1 id="securityadvice_error_header" style="display:none">
-      [% locale.maketext('Important') %]
-  </h1>
   <div id="securityadvice_error"></div>
-  <h1 id="securityadvice_warn_header" style="display:none">
-      [% locale.maketext('Recommendations') %]
-  </h1>
   <div id="securityadvice_warn"></div>
-  <h1 id="securityadvice_info_header" style="display:none">
-      [% locale.maketext('Information') %]
-  </h1>
   <div id="securityadvice_info"></div>
-  <h1 id="securityadvice_success_header" style="display:none">
-      [% locale.maketext('Verified') %]
-  </h1>
   <div id="securityadvice_success"></div>
 </div>
-<script id="item-template-error" type="text/x-handlebars-template">
-    <div id="{{messageId}}" class="callout callout-danger" aria-lable="danger">
-        <h3>
-            <i class="fas fa-exclamation-circle" style="color:#d03f00"></i>
-            {{text}}
-        </h3>
-        {{#if suggestion}}
-        <p>
-            {{suggestion}}
-        </p>
-        {{/if}}
-    </div>
-</script>
-<script id="item-template-success" type="text/x-handlebars-template">
-    <div id="{{messageId}}" class="callout callout-success" aria-lable="success">
-        <h3>
-            <i class="fas fa-check-circle" style="color:#83b655"></i>
-            {{text}}
-        </h3>
-        {{#if suggestion}}
-        <p>
-            {{suggestion}}
-        </p>
-        {{/if}}
-    </div>
-</script>
-<script id="item-template-warn" type="text/x-handlebars-template">
-    <div id="{{messageId}}" class="callout callout-warning" aria-lable="warning">
-        <h3>
-            <i class="fas fa-exclamation-circle" style="color:#f6c342"></i>
-            {{text}}
-        </h3>
-        {{#if suggestion}}
-        <p>
-            {{suggestion}}
-        </p>
-        {{/if}}
-    </div>
-</script>
-<script id="item-template-info" type="text/x-handlebars-template">
-    <div id="{{messageId}}" class="callout callout-info" aria-lable="info">
-        <h3>
-            <i class="fas fa-info-circle" style="color:#179bd7"></i>
-            {{text}}
-        </h3>
-        {{#if suggestion}}
-        <p>
-            {{suggestion}}
-        </p>
-        {{/if}}
-    </div>
-</script>
 
 <script>
 function Scanner() {
     this.scan_running = false;
     this.estimated_runtimes = {};
-    this.templates = {
-        success: window.Handlebars.compile(document.getElementById("item-template-success").innerHTML),
-        info:  window.Handlebars.compile(document.getElementById("item-template-info").innerHTML),
-        warn: window.Handlebars.compile(document.getElementById("item-template-warn").innerHTML),
-        error:  window.Handlebars.compile(document.getElementById("item-template-error").innerHTML)
-    };
-    this.headers = {
-        success: document.getElementById('securityadvice_success_header'),
-        info: document.getElementById('securityadvice_info_header'),
-        warn: document.getElementById('securityadvice_warn_header'),
-        error: document.getElementById('securityadvice_error_header')
-    };
 };
 
 Scanner.prototype.run_scan = function() {
     if ( !this.scan_running) {
-        var headers = this.headers;
-        ['success', 'info', 'warn', 'error'].forEach(function(name) {
-            headers[name].style.display = 'none';
-        });
-        document.getElementById('scan_button').style.display = "";
+        document.getElementById('scan_button').style.display='';
         document.getElementById('securityadvice_error').innerHTML = "";
         document.getElementById('securityadvice_warn').innerHTML = "";
         document.getElementById('securityadvice_info').innerHTML = "";
         document.getElementById('securityadvice_success').innerHTML = "";
-
+        document.getElementById('start_time').innerHTML = "---";
+        document.getElementById('end_time').innerHTML = "---";
         var current_time = new Date;
         var scan_channel = "/addon_securityadvisor/" + current_time.getTime();
-
         this.scan_running = true;
         this.estimated_runtimes = {};
         this.estimated_runtimes['total'] = 0;
-
         this.start_comet_scanner(scan_channel);
     }
 };
@@ -184,7 +77,7 @@ Scanner.prototype.start_comet_scanner = function(channel) {
                 if (data.status != 1) {
                     this.scan_running = false;
                     cometd.disconnect();
-                    document.getElementById('scan_button').style.display = '';
+                    document.getElementById('scan_button').style.display='';
                     alert("Failed to start scan: " + data.message);
                 }
             },
@@ -216,7 +109,6 @@ Scanner.prototype.start_comet_scanner = function(channel) {
 
     });
 };
-
 Scanner.prototype.parse_comet_message = function(data) {
     var message = "";
     if (data.type == "mod_load") {
@@ -234,9 +126,11 @@ Scanner.prototype.parse_comet_message = function(data) {
         if (data.state == 0) {
             document.getElementById('scan_button').style.display='none';
             this.estimated_runtimes['remaining'] = this.estimated_runtimes['total'];
+            document.getElementById('start_time').innerHTML = current_time;
             document.getElementById('spinner').style.display='';
         }
         else {
+            document.getElementById('end_time').innerHTML = current_time;
             document.getElementById('current_item').innerHTML = '';
             document.getElementById('spinner').style.display='none';
         }
@@ -257,33 +151,14 @@ Scanner.prototype.parse_comet_message = function(data) {
         }
     }
     else if (data.type == "mod_advice") {
-        var advise_notice_type = "success";
-        switch(data.advice.type) {
-            case 8:
-                advise_notice_type = "error";
-                break;
-            case 4:
-                advise_notice_type = "warn";
-                break;
-            case 2:
-                advise_notice_type = "info";
-                break;
-        }
+        var advise_notice_type = data.advice.type == 8 ? "error" : data.advice.type == 4 ? "warn" : data.advice.type == 2 ? "info" : "success";
 
-        this.headers[advise_notice_type].style.display = 'block';
-
-        var id = 'securityadvice_' + advise_notice_type;
-        var container = document.getElementById(id);
-        var advice = data.advice;
-        advice.messageId = YAHOO.lang.escapeHTML(advice.key);
-        if (advice.suggestion) {
-            advice.suggestion = new window.Handlebars.SafeString(advice.suggestion);
-        }
-        advice.text = new window.Handlebars.SafeString(advice.text);
-
-        var messageEl = document.createElement('div');
-        messageEl.innerHTML = this.templates[advise_notice_type](advice);
-        container.appendChild(messageEl.children[0]);
+        new Page_Notice({
+                        level: advise_notice_type,
+                        type: data.advice.type,
+                        container: DOM.get('securityadvice_' + advise_notice_type),
+                        content: data.advice.text + (data.advice.suggestion ? ("<blockquote>" + data.advice.suggestion + "</blockquote>") : "")
+                }).show();
     }
     else {
         //message = "<p>Unknown data received: " + YAHOO.lang.escapeHTML(YAHOO.lang.JSON.stringify(data)) + "</p>";
@@ -295,13 +170,10 @@ var YAHOO = window.YAHOO;
 var CPANEL = window.CPANEL;
 var DOM = YAHOO.util.Dom;
 var EVENT = YAHOO.util.Event;
-var scanner;
+var Page_Notice = CPANEL.widgets.Page_Notice;
 
-window.onload = function() {
-    scanner = new Scanner();
-    scanner.run_scan()
-};
-
+var scanner = new Scanner();
+YAHOO.util.Event.onDOMReady( function() { scanner.run_scan();} );
 </script>
 
 [% PROCESS '_ajaxapp_footer.tmpl' -%]
