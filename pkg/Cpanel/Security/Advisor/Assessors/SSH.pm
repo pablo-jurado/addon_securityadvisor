@@ -48,7 +48,7 @@ sub _check_for_ssh_settings {
 
     my $scfg = Whostmgr::Services::SSH::Config->new();
     my $sshd_config = $scfg->get_config();
-    if ( $sshd_config->{'PasswordAuthentication'} =~ m/yes/i || $sshd_config->{'ChallengeResponseAuthentication'} =~ m/yes/i ) {
+    if ( $scfg->get_config('PasswordAuthentication') =~ m/yes/i || $scfg->get_config('ChallengeResponseAuthentication') =~ m/yes/i ) {
         $self->add_bad_advice(
             'key'        => 'SSH_password_authentication_enabled',
             'text'       => $self->_lh->maketext('SSH password authentication is enabled.'),
@@ -68,7 +68,7 @@ sub _check_for_ssh_settings {
 
     }
 
-    if ( $sshd_config->{'PermitRootLogin'} =~ m/yes/i || !$sshd_config->{'PermitRootLogin'} ) {
+    if ( $scfg->get_config('PermitRootLogin') =~ m/yes/i || !$scfg->('PermitRootLogin') ) {
         $self->add_bad_advice(
             'key'        => 'SSH_direct_root_login_permitted',
             'text'       => $self->_lh->maketext('SSH direct root logins are permitted.'),
